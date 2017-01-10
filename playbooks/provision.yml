@@ -36,8 +36,8 @@
     tags: optimize
   - include: "includes/optimizations/mysql_options_myisam.yml"
     tags: optimize
-  - include: "includes/optimizations/mysql_options_innodb.yml"
-    tags: optimize
+  #- include: "includes/optimizations/mysql_options_innodb.yml"
+  #  tags: optimize
   - name: Configure php-fpm
     template: src=templates/phpfpm.conf.j2 dest="{{ configurations.php_fpm.conf }}" mode=644
     tags: configure
