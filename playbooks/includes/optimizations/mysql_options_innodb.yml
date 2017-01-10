@@ -1,0 +1,34 @@
+---
+- name: Optimize mysql innodb
+  lineinfile: dest="{{ configurations.mysql.conf | default('/etc/my.cnf') }}" regexp="^{{ item.name }}" line="{{ item.name }} = {{ item.value }}"
+  with_items:
+  - { name: "innodb_file_per_table", value: "1" }
+  - { name: "table_open_cache", value: "4096" }
+  - { name: "innodb_open_files", value: "4096" }
+  - { name: "key_buffer_size", value: "32M" }
+  - { name: "max_allowed_packet", value: "1M" }
+  - { name: "sort_buffer_size", value: "32M" }
+  - { name: "read_buffer_size", value: "256K" }
+  - { name: "read_rnd_buffer_size", value: "1M" }
+  - { name: "thread_stack", value: "128K" }
+  - { name: "query_cache_limit", value: "1M" } #check myisam option
+  - { name: "query_cache_size", value: "0" } #check myisam option
+  - { name: "query_cache_type", value: "1" }
+  - { name: "thread_cache_size", value: "32" } #check myisam option
+  - { name: "max_heap_table_size", value: "128M" }
+  - { name: "tmp_table_size", value: "128M" }
+  - { name: "innodb_additional_mem_pool_size", value: "20M" }
+  - { name: "innodb_read_io_threads", value: "8" }
+  - { name: "innodb_write_io_threads", value: "8" }
+  - { name: "innodb_stats_on_metadata", value: "0" } #Optimization INFORMATION_SCHEMA, SHOW TABLE STATUS or SHOW INDEX
+  - { name: "tmpdir", value: "/dev/shm" }      
+- name: Optimize mysql pool size
+  lineinfile: dest="{{ configurations.mysql.conf | default('/etc/my.cnf') }}" regexp="^innodb_buffer_pool_size" line="innodb_buffer_pool_size = {{ ansible_memtotal_mb*0.7|round }}G"    
+- name: Optimize mysql pool instances on server ram lower 32GB
+  lineinfile: dest="{{ configurations.mysql.conf | default('/etc/my.cnf') }}" regexp="^innodb_buffer_pool_instances" line="innodb_buffer_pool_instances = 4"
+  when: ansible_memtotal_mb < 32*1024
+- name: Optimize mysql pool instaces on server with ram higher 32GB
+  lineinfile: dest="{{ configurations.mysql.conf | default('/etc/my.cnf') }}" regexp="^innodb_buffer_pool_instances" line="innodb_buffer_pool_instances = 8"
+  when: ansible_memtotal_mb > 32*1024
+      
+          

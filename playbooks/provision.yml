@@ -1,0 +1,66 @@
+---
+- hosts: all
+  become: true
+  vars:
+    - packages:
+      - nginx
+      - php-fpm
+      - mysql-server
+      - php-cli
+      - php-mysql
+      - php-xcache
+    - services:
+      - nginx
+      - php-fpm
+      - mysqld
+    - configurations:
+        nginx:
+         conf: /etc/nginx/conf.d/www.conf
+         www_root: /var/www         
+        php_fpm:
+         conf: /etc/php-fpm.d/www.conf
+         pool_name: www 
+        mysql:
+         conf: /etc/my.cnf
+        php_socket: /var/run/php-fpm/php-fpm.sock 
+        hostname: "{{ hostvars[inventory_hostname].ansible_ssh_host }}"
+  pre_tasks:
+  - name: Install packages
+    yum: name={{ item }} state=installed
+    with_items: "{{ packages }}"
+    tags: install
+  - name: Configure nginx
+    template: src=templates/nginxvirtual.conf.j2 dest="{{ configurations.nginx.conf }}" mode=644
+    tags: configure
+  - include: "includes/optimizations/nginx_options.yml"
+    tags: optimize
+  - include: "includes/optimizations/mysql_options_myisam.yml"
+    tags: optimize
+  - include: "includes/optimizations/mysql_options_innodb.yml"
+    tags: optimize
+  - name: Configure php-fpm
+    template: src=templates/phpfpm.conf.j2 dest="{{ configurations.php_fpm.conf }}" mode=644
+    tags: configure
+  post_tasks:
+  - name: Create www folder
+    file: path="{{ configurations.nginx.www_root }}" state=directory force=yes mode=755
+    tags: script
+  - name: PHP script upload
+    blockinfile:
+      dest: "{{ configurations.nginx.www_root }}/index.php"
+      create: yes
+      content: |
+        <?php
+            phpinfo();
+        ?>
+    tags: script
+  - name: Restart services
+    service: name={{ item }} state=restarted
+    register: services_state
+    with_items: "{{ services }}"
+    tags: restart
+  - name: Show info
+    debug: msg="Open in browser http://{{ configurations.hostname }}"
+    when: services_state|changed
+    tags: show
+           

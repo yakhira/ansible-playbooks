@@ -1,0 +1,22 @@
+server {
+    listen       80;
+    server_name  {{ configurations.hostname }};
+    access_log   /var/log/nginx/{{ configurations.hostname }}.access.log;
+    error_log    /var/log/nginx/{{ configurations.hostname }}.error.log crit;
+
+    location / {
+        root   {{ configurations.nginx.www_root }};
+        index  index.php;
+    }
+    location ~* ^.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt)$ {
+        access_log     off;
+        expires        max;
+    }
+    location ~ \.php$ {
+        root           {{ configurations.nginx.www_root }};
+        fastcgi_pass   unix:{{ configurations.php_socket }};
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME   $document_root$fastcgi_script_name;
+        include        fastcgi_params;
+   }
+}
